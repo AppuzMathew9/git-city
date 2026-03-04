@@ -120,11 +120,16 @@ AS $$
 $$;
 
 -- Schedule refresh every 5 minutes via pg_cron.
+DO $$
+BEGIN
+  PERFORM cron.unschedule('refresh-city-snapshot');
+EXCEPTION WHEN OTHERS THEN
+  -- Job doesn't exist yet, ignore
+END;
+$$;
+
 SELECT cron.schedule(
   'refresh-city-snapshot',
   '*/5 * * * *',
   $$SELECT refresh_city_snapshot()$$
 );
-
--- Populate cache immediately so first requests are fast.
-SELECT refresh_city_snapshot();

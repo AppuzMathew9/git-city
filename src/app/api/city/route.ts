@@ -93,29 +93,18 @@ export async function GET(request: Request) {
 
   const sb = getSupabaseAdmin();
 
-  // Try cached snapshot first (pre-computed by pg_cron every 5 min)
+  // Read from cache (pre-computed by pg_cron every 5 min)
   const { data: cached } = await sb.rpc("get_cached_city_snapshot");
 
-  if (cached) {
-    const result = assembleSnapshot(cached, from, to);
-    return NextResponse.json(result, {
-      headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-      },
-    });
-  }
-
-  // Fallback: cache not yet populated, compute directly
-  const { data: snapshot } = await sb.rpc("get_city_snapshot");
-
-  if (!snapshot) {
+  if (!cached) {
+    // Cache not populated yet — return empty instead of running the heavy query
     return NextResponse.json(
       { developers: [], stats: { total_developers: 0, total_contributions: 0 } },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } }
     );
   }
 
-  const result = assembleSnapshot(snapshot, from, to);
+  const result = assembleSnapshot(cached, from, to);
   return NextResponse.json(result, {
     headers: {
       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
