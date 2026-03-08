@@ -631,6 +631,15 @@ function HomeContent() {
     ""
   ).toLowerCase();
 
+  // Fetch existing VS Code API key
+  useEffect(() => {
+    if (!session) return;
+    fetch("/api/vscode-key")
+      .then(r => r.json())
+      .then(d => { if (d.key) setVsCodeKey(d.key); })
+      .catch(() => {});
+  }, [session]);
+
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
     if (!flyMode || flyPaused) return;
@@ -2640,7 +2649,7 @@ if (claimingGift) return;
                             <p><span className="text-cream">3.</span> Paste your key and start coding</p>
                           </div>
                           <p className="mt-3 text-[10px] normal-case text-muted/50">
-                            Your building lights up in ~30s
+                            Use the same key on all your editors. Your building lights up in ~30s.
                           </p>
                           <p className="mt-1.5 text-[10px] normal-case text-muted/50">
                             Only your username and language are shared publicly. Control what&apos;s sent in VS Code Settings &gt; Git City &gt; Privacy.
@@ -2667,6 +2676,7 @@ if (claimingGift) return;
                                 const data = await res.json();
                                 if (data.key) {
                                   setVsCodeKey(data.key);
+
                                   navigator.clipboard.writeText(data.key);
                                   setVsCodeKeyCopied(true);
                                   setTimeout(() => setVsCodeKeyCopied(false), 2000);
