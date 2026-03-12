@@ -7,6 +7,7 @@ import { createWindowAtlas, FocusBeacon } from "./Building3D";
 import InstancedBuildings from "./InstancedBuildings";
 import InstancedLabels from "./InstancedLabels";
 import EffectsLayer from "./EffectsLayer";
+import WeatherLayer from "./WeatherLayer";
 import LiveDots from "./LiveDots";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding } from "@/lib/github";
@@ -198,6 +199,8 @@ export default function CityScene({
         flyMode={flyMode}
         ghostPreviewLogin={ghostPreviewLogin}
       />
+
+      <WeatherLayer active={true} />
 
       {/* FocusBeacon: standalone, only when a building is focused */}
       {!introMode && focusedBuildingData && (
