@@ -25,14 +25,14 @@ for (const line of envContent.split("\n")) {
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const CONCURRENCY = parseInt(
-  process.argv.find((a) => a.startsWith("--concurrency="))?.split("=")[1] ?? "2"
+  process.argv.find((a) => a.startsWith("--concurrency="))?.split("=")[1] ?? "2",
 );
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://thegitcity.com";
 
 const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
+  { auth: { persistSession: false } },
 );
 
 async function getMissingLogins(): Promise<string[]> {
@@ -66,16 +66,17 @@ async function indexDev(login: string): Promise<"ok" | "fail"> {
 }
 
 async function runBatch(logins: string[], concurrency: number) {
-  let ok = 0, fail = 0, i = 0;
+  let ok = 0,
+    fail = 0,
+    i = 0;
 
   async function worker() {
     while (i < logins.length) {
       const login = logins[i++];
       const result = await indexDev(login);
-      if (result === "ok") ok++; else fail++;
-      process.stdout.write(
-        `\r[${ok + fail}/${logins.length}] ok=${ok} fail=${fail}  `
-      );
+      if (result === "ok") ok++;
+      else fail++;
+      process.stdout.write(`\r[${ok + fail}/${logins.length}] ok=${ok} fail=${fail}  `);
       // Respect GitHub rate limits
       await new Promise((r) => setTimeout(r, 500));
     }

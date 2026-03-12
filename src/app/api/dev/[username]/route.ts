@@ -47,9 +47,13 @@ async function recordRateLimitRequest(key: string): Promise<void> {
 async function resolveRateLimitKey(request: Request): Promise<string> {
   try {
     const authClient = await createServerSupabase();
-    const { data: { user } } = await authClient.auth.getUser();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
     if (user) return `user:${user.id}`;
-  } catch { /* fall through to IP */ }
+  } catch {
+    /* fall through to IP */
+  }
   return (
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
@@ -59,10 +63,7 @@ async function resolveRateLimitKey(request: Request): Promise<string> {
 
 // ─── Route Handler ───────────────────────────────────────────
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ username: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const sb = getSupabaseAdmin();
 
@@ -79,7 +80,9 @@ export async function GET(
     let authUserId: string | null = null;
     try {
       const authClient = await createServerSupabase();
-      const { data: { user } } = await authClient.auth.getUser();
+      const {
+        data: { user },
+      } = await authClient.auth.getUser();
       if (user) {
         authUserId = user.id;
         const authLogin = (
@@ -106,28 +109,37 @@ export async function GET(
     }
 
     try {
-      const data = await fetchGitHubDeveloperData(username, isOwnProfile ? { allowEmpty: true } : undefined);
+      const data = await fetchGitHubDeveloperData(
+        username,
+        isOwnProfile ? { allowEmpty: true } : undefined,
+      );
       if (rateLimitKey) await recordRateLimitRequest(rateLimitKey);
 
       // Own profile: create building as fallback (auth callback may have failed)
       if (isOwnProfile && authUserId) {
         const { data: created, error: createErr } = await sb
           .from("developers")
-          .upsert({
-            ...data,
-            fetched_at: new Date().toISOString(),
-            claimed: true,
-            claimed_by: authUserId,
-            claimed_at: new Date().toISOString(),
-            fetch_priority: 1,
-          }, { onConflict: "github_login" })
+          .upsert(
+            {
+              ...data,
+              fetched_at: new Date().toISOString(),
+              claimed: true,
+              claimed_by: authUserId,
+              claimed_at: new Date().toISOString(),
+              fetch_priority: 1,
+            },
+            { onConflict: "github_login" },
+          )
           .select()
           .single();
 
         if (created && !createErr) {
           // Rank + XP
           await sb.rpc("assign_new_dev_rank", { dev_id: created.id });
-          sb.rpc("recalculate_ranks").then(() => {}, () => {});
+          sb.rpc("recalculate_ranks").then(
+            () => {},
+            () => {},
+          );
 
           const xp = calculateGithubXp({
             contributions: data.contributions_total ?? data.contributions,
@@ -136,7 +148,11 @@ export async function GET(
             total_prs: data.total_prs ?? 0,
           });
           if (xp > 0) {
-            await sb.rpc("grant_xp", { p_developer_id: created.id, p_source: "github", p_amount: xp });
+            await sb.rpc("grant_xp", {
+              p_developer_id: created.id,
+              p_source: "github",
+              p_amount: xp,
+            });
             await sb.from("developers").update({ xp_github: xp }).eq("id", created.id);
           }
 
@@ -172,7 +188,11 @@ export async function GET(
       }
       const isTimeout = err instanceof DOMException && err.name === "TimeoutError";
       return NextResponse.json(
-        { error: isTimeout ? "GitHub API timed out. Please try again." : "Failed to fetch GitHub data" },
+        {
+          error: isTimeout
+            ? "GitHub API timed out. Please try again."
+            : "Failed to fetch GitHub data",
+        },
         { status: isTimeout ? 504 : 500 },
       );
     }
@@ -201,23 +221,23 @@ export async function GET(
       : Number.POSITIVE_INFINITY;
     const needsStatsRefresh = Number.isNaN(cachedAge) || cachedAge >= STATS_REFRESH_INTERVAL;
 
-    const userRes = await fetch(
-      `https://api.github.com/users/${encodeURIComponent(username)}`,
-      {
-        headers: {
-          ...headers,
-          ...(cached.github_etag ? { "If-None-Match": cached.github_etag } : {}),
-        },
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    const userRes = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, {
+      headers: {
+        ...headers,
+        ...(cached.github_etag ? { "If-None-Match": cached.github_etag } : {}),
       },
-    );
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
 
     if (userRes.status === 304 && !needsStatsRefresh) {
-      return NextResponse.json({ ...cached, exists: true }, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      return NextResponse.json(
+        { ...cached, exists: true },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+          },
         },
-      });
+      );
     }
 
     const profileNotModified = userRes.status === 304;
@@ -311,23 +331,25 @@ export async function GET(
       top_repos: topRepos,
       github_etag: (profileNotModified ? cached.github_etag : userRes.headers.get("etag")) ?? null,
       fetched_at: new Date().toISOString(),
-      ...(expanded ? {
-        contributions_total: expanded.contributions_total,
-        contribution_years: expanded.contribution_years,
-        total_prs: expanded.total_prs,
-        total_reviews: expanded.total_reviews,
-        total_issues: expanded.total_issues,
-        repos_contributed_to: expanded.repos_contributed_to,
-        followers: expanded.followers,
-        following: expanded.following,
-        organizations_count: expanded.organizations_count,
-        account_created_at: expanded.account_created_at,
-        current_streak: expanded.current_streak,
-        longest_streak: expanded.longest_streak,
-        active_days_last_year: expanded.active_days_last_year,
-        language_diversity: uniqueLanguages.size,
-        current_week_contributions: expanded.current_week_contributions,
-      } : {}),
+      ...(expanded
+        ? {
+            contributions_total: expanded.contributions_total,
+            contribution_years: expanded.contribution_years,
+            total_prs: expanded.total_prs,
+            total_reviews: expanded.total_reviews,
+            total_issues: expanded.total_issues,
+            repos_contributed_to: expanded.repos_contributed_to,
+            followers: expanded.followers,
+            following: expanded.following,
+            organizations_count: expanded.organizations_count,
+            account_created_at: expanded.account_created_at,
+            current_streak: expanded.current_streak,
+            longest_streak: expanded.longest_streak,
+            active_days_last_year: expanded.active_days_last_year,
+            language_diversity: uniqueLanguages.size,
+            current_week_contributions: expanded.current_week_contributions,
+          }
+        : {}),
     };
 
     const { data: upserted, error: upsertError } = await sb
@@ -386,11 +408,14 @@ export async function GET(
 
     revalidatePath(`/dev/${record.github_login}`);
 
-    return NextResponse.json({ ...(withRank ?? upserted), exists: true }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+    return NextResponse.json(
+      { ...(withRank ?? upserted), exists: true },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
       },
-    });
+    );
   } catch (err) {
     console.error("Dev route error:", err);
 

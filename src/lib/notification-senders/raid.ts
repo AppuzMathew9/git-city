@@ -18,9 +18,7 @@ export function sendRaidAlertNotification(
 
   const labelColor = success ? "#cc4444" : "#5a8a00";
   const label = success ? "Building attacked" : "Defense successful";
-  const heading = success
-    ? `@${attackerLogin} broke through.`
-    : `You held off @${attackerLogin}.`;
+  const heading = success ? `@${attackerLogin} broke through.` : `You held off @${attackerLogin}.`;
   const subtext = success
     ? `Their attack score of ${attackScore} beat your defense of ${defenseScore}.`
     : `Your defense score of ${defenseScore} stopped their attack of ${attackScore}.`;

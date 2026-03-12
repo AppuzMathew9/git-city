@@ -41,12 +41,16 @@ function buildYearAliases(): string {
   const currentYear = new Date().getFullYear();
   const lines: string[] = [];
   for (let y = currentYear; y >= currentYear - 9; y--) {
-    lines.push(`y${y}: contributionsCollection(from: "${y}-01-01T00:00:00Z", to: "${y}-12-31T23:59:59Z") { contributionCalendar { totalContributions } }`);
+    lines.push(
+      `y${y}: contributionsCollection(from: "${y}-01-01T00:00:00Z", to: "${y}-12-31T23:59:59Z") { contributionCalendar { totalContributions } }`,
+    );
   }
   return lines.join("\n    ");
 }
 
-function computeStreaks(weeks: Array<{ contributionDays: Array<{ contributionCount: number; date: string }> }>): {
+function computeStreaks(
+  weeks: Array<{ contributionDays: Array<{ contributionCount: number; date: string }> }>,
+): {
   current_streak: number;
   longest_streak: number;
   active_days_last_year: number;
@@ -246,21 +250,26 @@ export async function fetchGitHubDeveloperData(
 ): Promise<GitHubDeveloperData> {
   const headers = ghHeaders();
 
-  const userRes = await fetch(
-    `https://api.github.com/users/${encodeURIComponent(login)}`,
-    { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
-  );
+  const userRes = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, {
+    headers,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
 
   if (!userRes.ok) {
     if (userRes.status === 404) throw new GitHubFetchError("not_found", "User not found", 404);
-    if (userRes.status === 403) throw new GitHubFetchError("rate_limit", "GitHub API rate limit exceeded.", 429);
+    if (userRes.status === 403)
+      throw new GitHubFetchError("rate_limit", "GitHub API rate limit exceeded.", 429);
     throw new Error(`Failed to fetch user data (${userRes.status})`);
   }
 
   const ghUser = await userRes.json();
 
   if (ghUser.type === "Organization") {
-    throw new GitHubFetchError("organization", "Organizations are not supported. Search for a user profile instead.", 400);
+    throw new GitHubFetchError(
+      "organization",
+      "Organizations are not supported. Search for a user profile instead.",
+      400,
+    );
   }
 
   const resolvedLogin = ghUser.login;
@@ -277,10 +286,21 @@ export async function fetchGitHubDeveloperData(
   const publicRepos = ghUser.public_repos;
 
   if (!options?.allowEmpty && contributions === 0 && publicRepos === 0) {
-    throw new GitHubFetchError("no_activity", "This user has no public activity on GitHub yet.", 400);
+    throw new GitHubFetchError(
+      "no_activity",
+      "This user has no public activity on GitHub yet.",
+      400,
+    );
   }
 
-  type RepoItem = { name: string; stargazers_count: number; language: string | null; html_url: string; fork: boolean; size: number };
+  type RepoItem = {
+    name: string;
+    stargazers_count: number;
+    language: string | null;
+    html_url: string;
+    fork: boolean;
+    size: number;
+  };
   let repos: RepoItem[] = reposPage1Res.ok ? await reposPage1Res.json() : [];
 
   if (repos.length >= 100) {
@@ -309,7 +329,12 @@ export async function fetchGitHubDeveloperData(
   const topRepos: TopRepo[] = ownRepos
     .sort((a, b) => b.stargazers_count - a.stargazers_count)
     .slice(0, 5)
-    .map((r) => ({ name: r.name, stars: r.stargazers_count, language: r.language, url: r.html_url }));
+    .map((r) => ({
+      name: r.name,
+      stars: r.stargazers_count,
+      language: r.language,
+      url: r.html_url,
+    }));
 
   return {
     github_login: resolvedLogin.toLowerCase(),
@@ -323,22 +348,24 @@ export async function fetchGitHubDeveloperData(
     primary_language: primaryLanguage,
     top_repos: topRepos,
     github_etag: userRes.headers.get("etag"),
-    ...(expanded ? {
-      contributions_total: expanded.contributions_total,
-      contribution_years: expanded.contribution_years,
-      total_prs: expanded.total_prs,
-      total_reviews: expanded.total_reviews,
-      total_issues: expanded.total_issues,
-      repos_contributed_to: expanded.repos_contributed_to,
-      followers: expanded.followers,
-      following: expanded.following,
-      organizations_count: expanded.organizations_count,
-      account_created_at: expanded.account_created_at,
-      current_streak: expanded.current_streak,
-      longest_streak: expanded.longest_streak,
-      active_days_last_year: expanded.active_days_last_year,
-      language_diversity: uniqueLanguages.size,
-      current_week_contributions: expanded.current_week_contributions,
-    } : {}),
+    ...(expanded
+      ? {
+          contributions_total: expanded.contributions_total,
+          contribution_years: expanded.contribution_years,
+          total_prs: expanded.total_prs,
+          total_reviews: expanded.total_reviews,
+          total_issues: expanded.total_issues,
+          repos_contributed_to: expanded.repos_contributed_to,
+          followers: expanded.followers,
+          following: expanded.following,
+          organizations_count: expanded.organizations_count,
+          account_created_at: expanded.account_created_at,
+          current_streak: expanded.current_streak,
+          longest_streak: expanded.longest_streak,
+          active_days_last_year: expanded.active_days_last_year,
+          language_diversity: uniqueLanguages.size,
+          current_week_contributions: expanded.current_week_contributions,
+        }
+      : {}),
   };
 }

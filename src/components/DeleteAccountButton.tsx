@@ -47,17 +47,12 @@ export default function DeleteAccountButton() {
           >
             <h2 className="text-sm text-red-400">Delete Account</h2>
             <p className="mt-3 text-[10px] leading-5 text-muted normal-case">
-              This will permanently delete your account, your building, and all
-              associated data: customizations, purchases, achievements, streaks,
-              raids, and kudos.
+              This will permanently delete your account, your building, and all associated data:
+              customizations, purchases, achievements, streaks, raids, and kudos.
             </p>
-            <p className="mt-3 text-[10px] text-red-400">
-              This action cannot be undone.
-            </p>
+            <p className="mt-3 text-[10px] text-red-400">This action cannot be undone.</p>
 
-            {error && (
-              <p className="mt-3 text-[10px] text-red-400 normal-case">{error}</p>
-            )}
+            {error && <p className="mt-3 text-[10px] text-red-400 normal-case">{error}</p>}
 
             <div className="mt-5 flex gap-3">
               <button

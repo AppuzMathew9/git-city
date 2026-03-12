@@ -7,9 +7,13 @@ function hashKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 
-async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: string; status: number }> {
+async function getAuthenticatedDevId(): Promise<
+  { devId: number } | { error: string; status: number }
+> {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated", status: 401 };
 
   const githubLogin = (

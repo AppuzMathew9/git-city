@@ -1,7 +1,14 @@
 import * as vscode from "vscode";
 import { initKeystore, getKey, getCachedKey, setKey, deleteKey } from "./auth/keystore";
 import { initQueue, stopQueue } from "./api/queue";
-import { initTracker, setPaused, isPaused, sendImmediateHeartbeat, sendOfflineSignal, buildOfflineHeartbeat } from "./activity/tracker";
+import {
+  initTracker,
+  setPaused,
+  isPaused,
+  sendImmediateHeartbeat,
+  sendOfflineSignal,
+  buildOfflineHeartbeat,
+} from "./activity/tracker";
 import { sendDirect } from "./api/client";
 import { initStatusBar, updateDisplay } from "./statusbar/item";
 import { getConfig } from "./config";

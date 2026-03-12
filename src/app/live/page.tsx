@@ -63,7 +63,8 @@ export default function LivePage() {
             These developers are keeping the city alive. Their buildings are glowing right now.
           </p>
           <p className="mt-1 text-[10px] normal-case text-muted/60">
-            Only username and language are shown. Developers control what they share via VS Code settings.
+            Only username and language are shown. Developers control what they share via VS Code
+            settings.
           </p>
         </div>
 
@@ -103,12 +104,8 @@ export default function LivePage() {
                       <span className={`text-sm ${isCreator ? "text-[#fbbf24]" : "text-cream"}`}>
                         {dev.githubLogin}
                       </span>
-                      {isCreator && (
-                        <span className="text-[9px] text-[#fbbf24]/70">CREATOR</span>
-                      )}
-                      {dev.status === "idle" && (
-                        <span className="text-[9px] text-muted">IDLE</span>
-                      )}
+                      {isCreator && <span className="text-[9px] text-[#fbbf24]/70">CREATOR</span>}
+                      {dev.status === "idle" && <span className="text-[9px] text-muted">IDLE</span>}
                     </div>
                     <div className="text-[10px] normal-case text-muted">
                       {isCreator ? "building the city" : dev.language || "coding"}

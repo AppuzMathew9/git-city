@@ -77,28 +77,23 @@ export async function middleware(request: NextRequest) {
   const { ok, remaining, reset } = rateLimit(key, limit, window);
 
   if (!ok) {
-    return new NextResponse(
-      JSON.stringify({ error: "Too many requests. Please slow down." }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
-          "X-RateLimit-Limit": String(limit),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(Math.ceil(reset / 1000)),
-        },
+    return new NextResponse(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+        "X-RateLimit-Limit": String(limit),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(Math.ceil(reset / 1000)),
       },
-    );
+    });
   }
 
   // ── 2. Supabase Session Refresh ──────────────────────────────────────
   // Only call Supabase when the user is actually logged in (has auth
   // cookies).  For anonymous visitors (~80%+ of viral traffic) we skip
   // the external HTTP call entirely, saving latency and Supabase quota.
-  const hasSession = request.cookies
-    .getAll()
-    .some((c) => c.name.startsWith("sb-"));
+  const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
 
   let supabaseResponse = NextResponse.next({ request });
 
@@ -112,9 +107,7 @@ export async function middleware(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value),
-            );
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             supabaseResponse = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) =>
               supabaseResponse.cookies.set(name, value, options),
@@ -136,16 +129,11 @@ export async function middleware(request: NextRequest) {
   // ── 4. Attach rate-limit headers so clients can self-throttle ────────
   supabaseResponse.headers.set("X-RateLimit-Limit", String(limit));
   supabaseResponse.headers.set("X-RateLimit-Remaining", String(remaining));
-  supabaseResponse.headers.set(
-    "X-RateLimit-Reset",
-    String(Math.ceil(reset / 1000)),
-  );
+  supabaseResponse.headers.set("X-RateLimit-Reset", String(Math.ceil(reset / 1000)));
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|models|fonts|api/cron).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|models|fonts|api/cron).*)"],
 };

@@ -49,7 +49,7 @@ export async function sendHeartbeats(heartbeats: RawHeartbeat[]): Promise<boolea
  * Single attempt, 3s timeout — best effort before VS Code kills the process.
  */
 export async function sendDirect(heartbeat: RawHeartbeat, cachedApiKey?: string): Promise<boolean> {
-  const apiKey = cachedApiKey ?? await getKey();
+  const apiKey = cachedApiKey ?? (await getKey());
   if (!apiKey) return false;
 
   const { apiUrl } = getConfig();

@@ -39,7 +39,12 @@ const PS_TEXT: Record<Lang, string> = {
 const CHAR_DELAY = 25;
 const PARAGRAPH_PAUSE = 400;
 
-export default function FounderMessage({ onClose, session, hasClaimed, onSignIn }: FounderMessageProps) {
+export default function FounderMessage({
+  onClose,
+  session,
+  hasClaimed,
+  onSignIn,
+}: FounderMessageProps) {
   const [lang, setLang] = useState<Lang>("en");
   const [typedText, setTypedText] = useState("");
   const [currentParagraph, setCurrentParagraph] = useState(0);
@@ -304,7 +309,10 @@ export default function FounderMessage({ onClose, session, hasClaimed, onSignIn 
             {/* Primary CTA */}
             {!session || !hasClaimed ? (
               <button
-                onClick={() => { onClose(); onSignIn(); }}
+                onClick={() => {
+                  onClose();
+                  onSignIn();
+                }}
                 className="inline-block font-pixel text-[10px] sm:text-[11px] px-4 py-2 uppercase tracking-wider transition-all duration-300 cursor-pointer text-left"
                 style={{
                   color: "#0d0d0f",
@@ -312,10 +320,18 @@ export default function FounderMessage({ onClose, session, hasClaimed, onSignIn 
                   border: "2px solid #00ff41",
                   boxShadow: "3px 3px 0px rgba(0, 255, 65, 0.3)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#00cc33"; e.currentTarget.style.borderColor = "#00cc33"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#00ff41"; e.currentTarget.style.borderColor = "#00ff41"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#00cc33";
+                  e.currentTarget.style.borderColor = "#00cc33";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#00ff41";
+                  e.currentTarget.style.borderColor = "#00ff41";
+                }}
               >
-                {lang === "en" ? "Connect with GitHub — get your building" : "Conectar com GitHub — resgatar seu prédio"}
+                {lang === "en"
+                  ? "Connect with GitHub — get your building"
+                  : "Conectar com GitHub — resgatar seu prédio"}
               </button>
             ) : (
               <a
@@ -329,8 +345,14 @@ export default function FounderMessage({ onClose, session, hasClaimed, onSignIn 
                   border: "2px solid #00ff41",
                   boxShadow: "3px 3px 0px rgba(0, 255, 65, 0.3)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#00cc33"; e.currentTarget.style.borderColor = "#00cc33"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#00ff41"; e.currentTarget.style.borderColor = "#00ff41"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#00cc33";
+                  e.currentTarget.style.borderColor = "#00cc33";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#00ff41";
+                  e.currentTarget.style.borderColor = "#00ff41";
+                }}
               >
                 {lang === "en" ? "Join the Discord" : "Entrar no Discord"}
               </a>
@@ -348,8 +370,14 @@ export default function FounderMessage({ onClose, session, hasClaimed, onSignIn 
                   background: "rgba(0, 255, 65, 0.05)",
                   boxShadow: "3px 3px 0px rgba(0, 255, 65, 0.15)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0, 255, 65, 0.15)"; e.currentTarget.style.borderColor = "#00ff41"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0, 255, 65, 0.05)"; e.currentTarget.style.borderColor = "rgba(0, 255, 65, 0.4)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(0, 255, 65, 0.15)";
+                  e.currentTarget.style.borderColor = "#00ff41";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(0, 255, 65, 0.05)";
+                  e.currentTarget.style.borderColor = "rgba(0, 255, 65, 0.4)";
+                }}
               >
                 {lang === "en" ? "See your building" : "Ver seu prédio"}
               </a>
@@ -365,8 +393,14 @@ export default function FounderMessage({ onClose, session, hasClaimed, onSignIn 
                   background: "rgba(0, 255, 65, 0.05)",
                   boxShadow: "3px 3px 0px rgba(0, 255, 65, 0.15)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0, 255, 65, 0.15)"; e.currentTarget.style.borderColor = "#00ff41"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0, 255, 65, 0.05)"; e.currentTarget.style.borderColor = "rgba(0, 255, 65, 0.4)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(0, 255, 65, 0.15)";
+                  e.currentTarget.style.borderColor = "#00ff41";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(0, 255, 65, 0.05)";
+                  e.currentTarget.style.borderColor = "rgba(0, 255, 65, 0.4)";
+                }}
               >
                 {lang === "en" ? "Star on GitHub" : "Dar estrela no GitHub"}
               </a>

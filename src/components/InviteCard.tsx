@@ -23,7 +23,14 @@ interface InviteCardProps {
   shadow: string;
 }
 
-export default function InviteCard({ developer, isLoggedIn, onLogin, onClose, accent, shadow }: InviteCardProps) {
+export default function InviteCard({
+  developer,
+  isLoggedIn,
+  onLogin,
+  onClose,
+  accent,
+  shadow,
+}: InviteCardProps) {
   const [copied, setCopied] = useState(false);
 
   const inviteUrl = `${window.location.origin}/?user=${developer.github_login}`;
@@ -40,7 +47,10 @@ export default function InviteCard({ developer, isLoggedIn, onLogin, onClose, ac
       <div className="absolute inset-0 bg-bg/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Card */}
-      <div className="relative mx-3 border-[3px] border-border bg-bg-raised p-4 text-center sm:mx-0 sm:p-6" style={{ maxWidth: 340 }}>
+      <div
+        className="relative mx-3 border-[3px] border-border bg-bg-raised p-4 text-center sm:mx-0 sm:p-6"
+        style={{ maxWidth: 340 }}
+      >
         {/* Close */}
         <button
           onClick={onClose}
@@ -64,19 +74,16 @@ export default function InviteCard({ developer, isLoggedIn, onLogin, onClose, ac
         {/* Name */}
         <p className="text-xs text-cream normal-case">
           <span style={{ color: accent }}>@{developer.github_login}</span>
-          {developer.name && (
-            <span className="text-muted"> ({developer.name})</span>
-          )}
+          {developer.name && <span className="text-muted"> ({developer.name})</span>}
         </p>
 
         {/* Status */}
-        <p className="mt-2 text-[10px] text-muted normal-case">
-          Not in the city yet
-        </p>
+        <p className="mt-2 text-[10px] text-muted normal-case">Not in the city yet</p>
 
         {/* Stats */}
         <p className="mt-2 text-[10px] text-muted normal-case">
-          <span style={{ color: accent }}>{developer.contributions.toLocaleString()}</span> contributions
+          <span style={{ color: accent }}>{developer.contributions.toLocaleString()}</span>{" "}
+          contributions
           {" · "}
           <span style={{ color: accent }}>{developer.total_stars.toLocaleString()}</span> stars
           {" · "}
@@ -87,7 +94,10 @@ export default function InviteCard({ developer, isLoggedIn, onLogin, onClose, ac
         <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5 sm:flex-row sm:justify-center sm:gap-3">
           {!isLoggedIn && (
             <button
-              onClick={() => { onLogin(); onClose(); }}
+              onClick={() => {
+                onLogin();
+                onClose();
+              }}
               className="btn-press whitespace-nowrap px-4 py-2 text-[10px] text-bg"
               style={{
                 backgroundColor: accent,

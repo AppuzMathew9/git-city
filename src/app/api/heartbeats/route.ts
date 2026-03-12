@@ -32,7 +32,11 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
   const hb = raw as Record<string, unknown>;
 
   // sessionId is required
-  if (typeof hb.sessionId !== "string" || hb.sessionId.length === 0 || hb.sessionId.length > MAX_SESSION_ID) {
+  if (
+    typeof hb.sessionId !== "string" ||
+    hb.sessionId.length === 0 ||
+    hb.sessionId.length > MAX_SESSION_ID
+  ) {
     return null;
   }
 
@@ -43,17 +47,28 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
   let activeSeconds = typeof hb.activeSeconds === "number" ? Math.floor(hb.activeSeconds) : 0;
   activeSeconds = Math.max(0, Math.min(activeSeconds, MAX_ACTIVE_SECONDS));
 
-  const editorName = typeof hb.editorName === "string" && ALLOWED_EDITORS.has(hb.editorName)
-    ? hb.editorName
-    : "vscode";
+  const editorName =
+    typeof hb.editorName === "string" && ALLOWED_EDITORS.has(hb.editorName)
+      ? hb.editorName
+      : "vscode";
 
   const os = typeof hb.os === "string" && ALLOWED_OS.has(hb.os) ? hb.os : undefined;
 
-  const status = typeof hb.status === "string" && ALLOWED_STATUS.has(hb.status)
-    ? (hb.status as "active" | "offline")
-    : undefined;
+  const status =
+    typeof hb.status === "string" && ALLOWED_STATUS.has(hb.status)
+      ? (hb.status as "active" | "offline")
+      : undefined;
 
-  return { language, project, isWrite, activeSeconds, sessionId: hb.sessionId, editorName, os, status };
+  return {
+    language,
+    project,
+    isWrite,
+    activeSeconds,
+    sessionId: hb.sessionId,
+    editorName,
+    os,
+    status,
+  };
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────

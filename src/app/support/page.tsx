@@ -91,7 +91,8 @@ function SupportContent() {
               <span style={{ color: ACCENT }}>01.</span> Claim your building
             </p>
             <p className="mt-2 text-xs text-muted normal-case">
-              Connect your GitHub account and your building appears in the city based on your real contributions.
+              Connect your GitHub account and your building appears in the city based on your real
+              contributions.
             </p>
             <Link
               href="/"
@@ -173,11 +174,18 @@ function SupportContent() {
                   className="w-14 border-2 border-border bg-transparent px-2 py-2 text-xs text-cream outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
-                  disabled={loadingAmount !== null || !customAmount || parseInt(customAmount, 10) < 1}
+                  disabled={
+                    loadingAmount !== null || !customAmount || parseInt(customAmount, 10) < 1
+                  }
                   onClick={() => handleStripeCheckout(parseInt(customAmount, 10))}
                   className="btn-press border-2 border-border px-3 py-2 text-[10px] text-cream transition-colors hover:border-border-light disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  {loadingAmount && loadingAmount !== 5 && loadingAmount !== 10 && loadingAmount !== 25 ? "..." : "GO"}
+                  {loadingAmount &&
+                  loadingAmount !== 5 &&
+                  loadingAmount !== 10 &&
+                  loadingAmount !== 25
+                    ? "..."
+                    : "GO"}
                 </button>
               </div>
             </div>

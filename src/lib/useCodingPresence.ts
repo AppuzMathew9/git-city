@@ -99,9 +99,7 @@ export function useCodingPresence() {
   }, [updateMap]);
 
   const liveCount = liveByLogin.size;
-  const liveLogins = new Set(
-    Array.from(liveByLogin.values()).map((s) => s.githubLogin),
-  );
+  const liveLogins = new Set(Array.from(liveByLogin.values()).map((s) => s.githubLogin));
 
   return { liveCount, liveLogins, liveByLogin };
 }

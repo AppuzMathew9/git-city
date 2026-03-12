@@ -9,7 +9,7 @@ export function createBrowserSupabase() {
 
   browserClient = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
   return browserClient;
 }
@@ -19,7 +19,7 @@ export function getSupabaseAdmin(): SupabaseClient {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
+    { auth: { persistSession: false } },
   );
 }
 
@@ -42,8 +42,8 @@ export async function broadcastToChannel(
     await fetch(url, {
       method: "POST",
       headers: {
-        "apikey": key,
-        "Authorization": `Bearer ${key}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

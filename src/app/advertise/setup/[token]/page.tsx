@@ -42,7 +42,9 @@ export default async function SetupPage({ params }: Props) {
     return (
       <main className="min-h-screen bg-bg font-pixel uppercase text-warm">
         <div className="mx-auto max-w-md px-4 py-20 text-center">
-          <p className="text-3xl animate-pulse" style={{ color: ACCENT }}>...</p>
+          <p className="text-3xl animate-pulse" style={{ color: ACCENT }}>
+            ...
+          </p>
           <h1 className="mt-4 text-xl text-cream">Waiting for payment</h1>
           <p className="mt-3 text-xs text-muted normal-case">
             Your payment is being processed. This page will refresh automatically.

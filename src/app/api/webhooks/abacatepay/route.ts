@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { autoEquipIfSolo } from "@/lib/items";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
+import {
+  sendPurchaseNotification,
+  sendGiftSentNotification,
+} from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 
@@ -13,7 +16,6 @@ function extractPixId(data: any): string | undefined {
   // pixQrCode.paid payload: data.id or data.pixQrCode.id
   return data?.pixQrCode?.id ?? data?.id;
 }
-
 
 export async function POST(request: Request) {
   // Layer 1: Validate webhook secret via query string
@@ -91,10 +93,7 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (purchase && purchase.status === "pending") {
-          await sb
-            .from("purchases")
-            .update({ status: "completed" })
-            .eq("id", purchase.id);
+          await sb.from("purchases").update({ status: "completed" }).eq("id", purchase.id);
 
           const { data: fullPurchase } = await sb
             .from("purchases")
@@ -122,17 +121,38 @@ export async function POST(request: Request) {
                 event_type: "gift_sent",
                 actor_id: fullPurchase.developer_id,
                 target_id: fullPurchase.gifted_to,
-                metadata: { giver_login: dev?.github_login, receiver_login: receiver?.github_login, item_id: fullPurchase.item_id },
+                metadata: {
+                  giver_login: dev?.github_login,
+                  receiver_login: receiver?.github_login,
+                  item_id: fullPurchase.item_id,
+                },
               });
-              sendGiftSentNotification(fullPurchase.developer_id, dev?.github_login ?? "", receiver?.github_login ?? "unknown", purchase.id, fullPurchase.item_id);
-              sendGiftReceivedNotification(fullPurchase.gifted_to, dev?.github_login ?? "someone", receiver?.github_login ?? "unknown", purchase.id, fullPurchase.item_id);
+              sendGiftSentNotification(
+                fullPurchase.developer_id,
+                dev?.github_login ?? "",
+                receiver?.github_login ?? "unknown",
+                purchase.id,
+                fullPurchase.item_id,
+              );
+              sendGiftReceivedNotification(
+                fullPurchase.gifted_to,
+                dev?.github_login ?? "someone",
+                receiver?.github_login ?? "unknown",
+                purchase.id,
+                fullPurchase.item_id,
+              );
             } else {
               await sb.from("activity_feed").insert({
                 event_type: "item_purchased",
                 actor_id: fullPurchase.developer_id,
                 metadata: { login: dev?.github_login, item_id: fullPurchase.item_id },
               });
-              sendPurchaseNotification(fullPurchase.developer_id, dev?.github_login ?? "", purchase.id, fullPurchase.item_id);
+              sendPurchaseNotification(
+                fullPurchase.developer_id,
+                dev?.github_login ?? "",
+                purchase.id,
+                fullPurchase.item_id,
+              );
             }
           }
         }
@@ -152,11 +172,7 @@ export async function POST(request: Request) {
           .eq("provider", "abacatepay");
 
         // Clean up expired sky ad rows
-        await sb
-          .from("sky_ads")
-          .delete()
-          .eq("pix_id", pixId)
-          .eq("active", false);
+        await sb.from("sky_ads").delete().eq("pix_id", pixId).eq("active", false);
         break;
       }
     }

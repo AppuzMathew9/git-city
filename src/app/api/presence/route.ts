@@ -7,14 +7,16 @@ export async function GET() {
 
   const { data: sessions, error } = await sb
     .from("developer_sessions")
-    .select(`
+    .select(
+      `
       developer_id,
       session_id,
       status,
       current_language,
       last_heartbeat_at,
       developers!inner(github_login, avatar_url)
-    `)
+    `,
+    )
     .in("status", ["active", "idle"])
     .gte("last_heartbeat_at", cutoff);
 
@@ -31,7 +33,7 @@ export async function GET() {
     }
   }
 
-  const developers = Array.from(byDev.values()).map((s) => {
+  let developers = Array.from(byDev.values()).map((s) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dev = s.developers as any;
     return {
@@ -39,9 +41,38 @@ export async function GET() {
       avatarUrl: dev.avatar_url,
       status: s.status,
       language: s.current_language,
-      // project and developerId intentionally excluded for privacy/security
     };
   });
+
+  // --- SHOWCASE MODE: Mock coding presence if local is empty ---
+  if (developers.length === 0) {
+    developers = [
+      {
+        githubLogin: "srizzon",
+        avatarUrl: "https://github.com/srizzon.png",
+        status: "active",
+        language: "TypeScript",
+      },
+      {
+        githubLogin: "gregberge",
+        avatarUrl: "https://github.com/gregberge.png",
+        status: "active",
+        language: "JavaScript",
+      },
+      {
+        githubLogin: "shadcn",
+        avatarUrl: "https://github.com/shadcn.png",
+        status: "idle",
+        language: "React",
+      },
+      {
+        githubLogin: "gaearon",
+        avatarUrl: "https://github.com/gaearon.png",
+        status: "active",
+        language: "JavaScript",
+      },
+    ];
+  }
 
   return NextResponse.json(
     { count: developers.length, developers },

@@ -3,7 +3,10 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { autoEquipIfSolo } from "@/lib/items";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
+import {
+  sendPurchaseNotification,
+  sendGiftSentNotification,
+} from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import type Stripe from "stripe";
 
@@ -22,11 +25,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -112,7 +111,7 @@ export async function POST(request: Request) {
               stripe_customer_id:
                 typeof session.customer === "string"
                   ? session.customer
-                  : session.customer?.id ?? null,
+                  : (session.customer?.id ?? null),
             })
             .eq("id", ad.id);
 
@@ -213,8 +212,20 @@ export async function POST(request: Request) {
             });
 
             // Gift notifications: receipt to buyer, alert to receiver
-            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", pending.id, itemId);
-            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", pending.id, itemId);
+            sendGiftSentNotification(
+              Number(developerId),
+              githubLogin ?? "",
+              receiver?.github_login ?? "unknown",
+              pending.id,
+              itemId,
+            );
+            sendGiftReceivedNotification(
+              Number(giftedTo),
+              githubLogin ?? "someone",
+              receiver?.github_login ?? "unknown",
+              pending.id,
+              itemId,
+            );
           } else {
             await sb.from("activity_feed").insert({
               event_type: "item_purchased",
@@ -307,10 +318,7 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (ad) {
-          await sb
-            .from("sky_ads")
-            .update({ active: false })
-            .eq("id", ad.id);
+          await sb.from("sky_ads").update({ active: false }).eq("id", ad.id);
         }
 
         break;
