@@ -22,7 +22,7 @@ export default function GlobalRadio() {
 
   useEffect(() => {
     if (!mounted) return;
-    const findSlot = () => document.getElementById("gc-radio-slot");
+    const findSlot = () => document.getElementById("gc-radio-slot") || document.getElementById("gc-radio-slot-alt");
     setSlot(findSlot());
 
     const observer = new MutationObserver(() => setSlot(findSlot()));
