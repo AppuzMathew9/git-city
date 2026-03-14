@@ -786,7 +786,7 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
     }
 
     // ── FLIGHT MODE ──
-    const t = state.clock.elapsedTime;
+    const t = _timer.getElapsed();
     const mx = mouse.current.x;
     const my = mouse.current.y;
 
@@ -949,14 +949,14 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
 
 // ─── Sky Collectibles ────────────────────────────────────────
 
-const COLLECTIBLE_COUNT = 40;
+const COLLECTIBLE_COUNT = 43;
 const COMBO_WINDOW = 3; // seconds
 // Hitbox radius per type — generous for good UX at flight speed
-const COLLECT_RADIUS: Record<string, number> = { common: 20, rare: 28, epic: 35 };
+const COLLECT_RADIUS: Record<string, number> = { common: 20, rare: 28, epic: 35, legendary: 45 };
 
 interface CollectibleDef {
   x: number; y: number; z: number;
-  type: "common" | "rare" | "epic";
+  type: "common" | "rare" | "epic" | "legendary";
   points: number;
   size: number;
 }
@@ -966,6 +966,16 @@ const _cScale = new THREE.Vector3();
 const _cPos = new THREE.Vector3();
 const _cQuat = new THREE.Quaternion();
 const _cEuler = new THREE.Euler();
+
+// Timers replace THREE.Clock for performance and future-proofing
+const _timer = new THREE.Timer();
+
+function TimerUpdater() {
+  useFrame(() => {
+    _timer.update();
+  });
+  return null;
+}
 
 function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
   playerPosRef: React.MutableRefObject<THREE.Vector3>;
@@ -998,7 +1008,7 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
       count: number,
       minR: number, maxR: number,
       minAlt: number, maxAlt: number,
-      type: "common" | "rare" | "epic",
+      type: "common" | "rare" | "epic" | "legendary",
       points: number, size: number,
     ) => {
       const angularOffset = rng() * Math.PI * 2; // random rotation per zone
@@ -1040,6 +1050,8 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
     placeInZone(8, spread * 0.7, spread, 250, 550, "common", 1, 6);
     placeInZone(4, spread * 0.7, spread, 400, 700, "rare", 5, 9);
     placeInZone(2, spread * 0.7, spread, 650, 850, "epic", 25, 14);
+    // Stratosphere: 3 legendary stars at the highest altitude
+    placeInZone(3, spread * 0.8, spread, 800, 950, "legendary", 50, 18);
 
     return result;
   }, [cityRadius]);
@@ -1058,6 +1070,7 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
     common: new THREE.Color(0, 2.5, 2.5),   // bright cyan
     rare: new THREE.Color(2.5, 0.5, 3),     // vivid purple
     epic: new THREE.Color(3, 2.2, 0),        // bright gold
+    legendary: new THREE.Color(5, 5, 0), // intense yellow/white glow
   }), []);
 
   // Set instance colors
@@ -1072,13 +1085,13 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
 
   const prevTime = useRef(0);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    const t = state.clock.elapsedTime;
-    const dt = prevTime.current > 0 ? Math.min(t - prevTime.current, 0.05) : 0.016;
-    prevTime.current = t;
+    // _timer.update() is called in the main useFrame, so we just get the elapsed time here
+    const t = _timer.getElapsed();
+    const dt = Math.min(delta, 0.05);
     const playerPos = playerPosRef.current;
 
     for (let i = 0; i < items.length; i++) {
@@ -1675,9 +1688,9 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
 function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterColor: string; waterEmissive: string }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (matRef.current) {
-      matRef.current.opacity = 0.82 + Math.sin(clock.elapsedTime * 0.5) * 0.05;
+      matRef.current.opacity = 0.82 + Math.sin(_timer.getElapsed() * 0.5) * 0.05;
     }
   });
 
@@ -2043,6 +2056,7 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
       {showPerf && <Stats />}
+      <TimerUpdater />
       <CityExposure cityEnergy={cityEnergy ?? 1} />
       <PerformanceMonitor
         onIncline={() => { setDpr(1.25); setBloomEnabled(true); }}

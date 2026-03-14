@@ -2254,18 +2254,27 @@ function HomeContent() {
               <span className="text-[10px]" style={{ color: theme.accent }}>{flyScore.score}</span>
               <span className="text-[10px] text-muted">PX</span>
               {flyScore.combo >= 2 && (
-                <span className="animate-pulse text-[10px] font-bold" style={{ color: "#ffd700" }}>
-                  &times;{flyScore.combo >= 4 ? 3 : flyScore.combo >= 3 ? 2 : 1.5}
-                </span>
+                <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                  <span className="text-[10px] text-muted">Combo</span>
+                  <span
+                    className="text-xs font-bold font-pixel"
+                    style={{
+                      color: flyScore.combo >= 4 ? "#ef4444" : "#f59e0b",
+                      textShadow: `0 0 10px ${flyScore.combo >= 4 ? "#ef4444" : "#f59e0b"}40`,
+                    }}
+                  >
+                    &times;{flyScore.combo >= 4 ? 3 : flyScore.combo >= 3 ? 2 : 1.5}
+                  </span>
+                </div>
               )}
             </div>
           </div>
 
           {/* Score HUD (top right) */}
           <div className="absolute top-4 right-3 text-right text-[9px] text-muted sm:right-4 sm:text-[10px]">
-            <div>{flyScore.collected}/40 collected</div>
+            <div>{flyScore.collected}/43 collected</div>
             <div className="mt-1 flex h-1 w-24 items-center border border-border/40 bg-bg/50 ml-auto">
-              <div className="h-full transition-all duration-150" style={{ width: `${(flyScore.collected / 40) * 100}%`, backgroundColor: theme.accent }} />
+              <div className="h-full transition-all duration-150" style={{ width: `${(flyScore.collected / 43) * 100}%`, backgroundColor: theme.accent }} />
             </div>
             <div className="mt-1.5 text-[8px]">
               <span className="text-muted">TIME </span>

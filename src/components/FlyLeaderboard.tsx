@@ -371,7 +371,7 @@ export default function FlyLeaderboard() {
                 </span>
 
                 <span className="hidden w-20 text-right text-xs text-muted sm:block">
-                  {entry.collected}/40
+                  {entry.collected}/43
                 </span>
 
                 <span
