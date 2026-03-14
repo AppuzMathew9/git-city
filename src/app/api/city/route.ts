@@ -12,19 +12,43 @@ export async function GET(request: Request) {
   const sb = getSupabaseAdmin();
 
   // Round 1: devs + stats in parallel
-  const [devsResult, statsResult] = await Promise.all([
-    sb
-      .from("developers")
-      .select(
-        "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level"
-      )
-      .order("rank", { ascending: true })
-      .range(from, to - 1),
-    sb.from("city_stats").select("*").eq("id", 1).single(),
-  ]);
+  let devsResult, statsResult;
+  try {
+    [devsResult, statsResult] = await Promise.all([
+      sb
+        .from("developers")
+        .select(
+          "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level"
+        )
+        .order("rank", { ascending: true })
+        .range(from, to - 1),
+      sb.from("city_stats").select("*").eq("id", 1).single(),
+    ]);
+  } catch (e) {
+    // Supabase likely not configured or connection failed
+    devsResult = { data: null };
+    statsResult = { data: null };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const devs = (devsResult.data ?? []) as Record<string, any>[];
+  let devs = (devsResult?.data ?? []) as Record<string, any>[];
+
+  // --- SHOWCASE MODE: Fallback to production data if local is empty ---
+  if (devs.length === 0) {
+    try {
+      const prodUrl = `https://www.thegitcity.com/api/city?from=${from}&to=${to}`;
+      const prodRes = await fetch(prodUrl);
+      if (prodRes.ok) {
+        const prodData = await prodRes.json();
+        return NextResponse.json(prodData, {
+          headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+        });
+      }
+    } catch {
+      // Fall through to empty response
+    }
+  }
+
   const devIds = devs.map((d: Record<string, any>) => d.id);
 
   if (devIds.length === 0) {

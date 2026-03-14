@@ -1,0 +1,466 @@
+﻿diff --git a/src/app/api/city/route.ts b/src/app/api/city/route.ts
+index 42c5ede..95ea4bf 100644
+--- a/src/app/api/city/route.ts
++++ b/src/app/api/city/route.ts
+@@ -8,20 +8,44 @@ export async function GET(request: Request) {
+ 
+   const sb = getSupabaseAdmin();
+ 
+-  // Round 1: devs + stats in parallel
+-  const [devsResult, statsResult] = await Promise.all([
+-    sb
+-      .from("developers")
+-      .select(
+-        "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level",
+-      )
+-      .order("rank", { ascending: true })
+-      .range(from, to - 1),
+-    sb.from("city_stats").select("*").eq("id", 1).single(),
+-  ]);
++  let devsResult, statsResult;
++  try {
++    // Round 1: devs + stats in parallel
++    [devsResult, statsResult] = await Promise.all([
++      sb
++        .from("developers")
++        .select(
++          "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level",
++        )
++        .order("rank", { ascending: true })
++        .range(from, to - 1),
++      sb.from("city_stats").select("*").eq("id", 1).single(),
++    ]);
++  } catch (e) {
++    // Supabase likely not configured or connection failed
++    devsResult = { data: null };
++    statsResult = { data: null };
++  }
+ 
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+-  const devs = (devsResult.data ?? []) as Record<string, any>[];
++  let devs = (devsResult?.data ?? []) as Record<string, any>[];
++
++  // --- SHOWCASE MODE: Fallback to production data if local is empty ---
++  if (devs.length === 0) {
++    try {
++      const prodUrl = `https://www.thegitcity.com/api/city?from=${from}&to=${to}`;
++      const prodRes = await fetch(prodUrl);
++      if (prodRes.ok) {
++        const prodData = await prodRes.json();
++        return NextResponse.json(prodData, {
++          headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
++        });
++      }
++    } catch {
++      // Fall through to empty response
++    }
++  }
++
+   const devIds = devs.map((d: Record<string, any>) => d.id);
+ 
+   if (devIds.length === 0) {
+diff --git a/src/app/api/presence/route.ts b/src/app/api/presence/route.ts
+index d9614a4..9709f95 100644
+--- a/src/app/api/presence/route.ts
++++ b/src/app/api/presence/route.ts
+@@ -33,7 +33,7 @@ export async function GET() {
+     }
+   }
+ 
+-  const developers = Array.from(byDev.values()).map((s) => {
++  let developers = Array.from(byDev.values()).map((s) => {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     const dev = s.developers as any;
+     return {
+@@ -41,10 +41,39 @@ export async function GET() {
+       avatarUrl: dev.avatar_url,
+       status: s.status,
+       language: s.current_language,
+-      // project and developerId intentionally excluded for privacy/security
+     };
+   });
+ 
++  // --- SHOWCASE MODE: Mock coding presence if local is empty ---
++  if (developers.length === 0) {
++    developers = [
++      {
++        githubLogin: "srizzon",
++        avatarUrl: "https://github.com/srizzon.png",
++        status: "active",
++        language: "TypeScript",
++      },
++      {
++        githubLogin: "gregberge",
++        avatarUrl: "https://github.com/gregberge.png",
++        status: "active",
++        language: "JavaScript",
++      },
++      {
++        githubLogin: "shadcn",
++        avatarUrl: "https://github.com/shadcn.png",
++        status: "idle",
++        language: "React",
++      },
++      {
++        githubLogin: "gaearon",
++        avatarUrl: "https://github.com/gaearon.png",
++        status: "active",
++        language: "JavaScript",
++      },
++    ];
++  }
++
+   return NextResponse.json(
+     { count: developers.length, developers },
+     {
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index 44706e3..f0bbc38 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -72,7 +72,7 @@ export default function RootLayout({
+   children: React.ReactNode;
+ }>) {
+   return (
+-    <html lang="en">
++    <html lang="en" suppressHydrationWarning>
+       <head>
+         <script
+           type="application/ld+json"
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index d55173f..61cf2c0 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -73,6 +73,12 @@ const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), {
+ const LevelUpToast = dynamic(() => import("@/components/LevelUpToast"), { ssr: false });
+ const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
+ 
++// Radio portal target that only exists on the client to avoid hydration mismatches
++const RadioSlot = dynamic(
++  () => Promise.resolve(({ id }: { id: string }) => <div id={id} suppressHydrationWarning />),
++  { ssr: false },
++);
++
+ // Feature flags ΓÇö flip to switch milestone banner
+ const MILESTONE_MODE: "stars" | "devs" = "devs"; // "stars" = GitHub stars road to 1K, "devs" = total developers
+ 
+@@ -2560,21 +2566,30 @@ function HomeContent() {
+               </span>
+               <span className="text-[10px] text-muted">PX</span>
+               {flyScore.combo >= 2 && (
+-                <span className="animate-pulse text-[10px] font-bold" style={{ color: "#ffd700" }}>
+-                  &times;{flyScore.combo >= 4 ? 3 : flyScore.combo >= 3 ? 2 : 1.5}
+-                </span>
++                <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
++                  <span className="text-[10px] text-muted">Combo</span>
++                  <span
++                    className="text-xs font-bold font-pixel"
++                    style={{
++                      color: flyScore.combo >= 4 ? "#ef4444" : "#f59e0b",
++                      textShadow: `0 0 10px ${flyScore.combo >= 4 ? "#ef4444" : "#f59e0b"}40`,
++                    }}
++                  >
++                    &times;{flyScore.combo >= 4 ? 3 : flyScore.combo >= 3 ? 2 : 1.5}
++                  </span>
++                </div>
+               )}
+             </div>
+           </div>
+ 
+           {/* Score HUD (top right) */}
+           <div className="absolute top-4 right-3 text-right text-[9px] text-muted sm:right-4 sm:text-[10px]">
+-            <div>{flyScore.collected}/40 collected</div>
++            <div>{flyScore.collected}/43 collected</div>
+             <div className="mt-1 flex h-1 w-24 items-center border border-border/40 bg-bg/50 ml-auto">
+               <div
+                 className="h-full transition-all duration-150"
+                 style={{
+-                  width: `${(flyScore.collected / 40) * 100}%`,
++                  width: `${(flyScore.collected / 43) * 100}%`,
+                   backgroundColor: theme.accent,
+                 }}
+               />
+@@ -2769,7 +2784,7 @@ function HomeContent() {
+                 {themeIndex + 1}/{THEMES.length}
+               </span>
+             </button>
+-            <div id="gc-radio-slot" />
++            <RadioSlot id="gc-radio-slot-alt" />
+           </div>
+ 
+           {/* Feed toggle (top-right, below GitHub badges on desktop) */}
+@@ -5202,7 +5217,7 @@ function HomeContent() {
+               {themeIndex + 1}/{THEMES.length}
+             </span>
+           </button>
+-          <div id="gc-radio-slot" suppressHydrationWarning />
++          <RadioSlot id="gc-radio-slot" />
+           <button
+             onClick={replayIntro}
+             className="btn-press flex items-center gap-1 border-[3px] border-border bg-bg/70 px-2 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
+diff --git a/src/components/CityCanvas.tsx b/src/components/CityCanvas.tsx
+index 1d2777d..e21a98b 100644
+--- a/src/components/CityCanvas.tsx
++++ b/src/components/CityCanvas.tsx
+@@ -903,7 +903,7 @@ function AirplaneFlight({
+     }
+ 
+     // ΓöÇΓöÇ FLIGHT MODE ΓöÇΓöÇ
+-    const t = state.clock.elapsedTime;
++    const t = _timer.getElapsed();
+     const mx = mouse.current.x;
+     const my = mouse.current.y;
+ 
+@@ -1080,16 +1080,21 @@ function AirplaneFlight({
+ 
+ // ΓöÇΓöÇΓöÇ Sky Collectibles ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ 
+-const COLLECTIBLE_COUNT = 40;
++const COLLECTIBLE_COUNT = 43;
+ const COMBO_WINDOW = 3; // seconds
+ // Hitbox radius per type ΓÇö generous for good UX at flight speed
+-const COLLECT_RADIUS: Record<string, number> = { common: 20, rare: 28, epic: 35 };
++const COLLECT_RADIUS: Record<string, number> = {
++  common: 20,
++  rare: 28,
++  epic: 35,
++  legendary: 45,
++};
+ 
+ interface CollectibleDef {
+   x: number;
+   y: number;
+   z: number;
+-  type: "common" | "rare" | "epic";
++  type: "common" | "rare" | "epic" | "legendary";
+   points: number;
+   size: number;
+ }
+@@ -1099,6 +1104,15 @@ const _cScale = new THREE.Vector3();
+ const _cPos = new THREE.Vector3();
+ const _cQuat = new THREE.Quaternion();
+ const _cEuler = new THREE.Euler();
++// Timers replace THREE.Clock for performance and future-proofing
++const _timer = new THREE.Timer();
++
++function TimerUpdater() {
++  useFrame(() => {
++    _timer.update();
++  });
++  return null;
++}
+ 
+ function SkyCollectibles({
+   playerPosRef,
+@@ -1147,7 +1161,7 @@ function SkyCollectibles({
+       maxR: number,
+       minAlt: number,
+       maxAlt: number,
+-      type: "common" | "rare" | "epic",
++      type: "common" | "rare" | "epic" | "legendary",
+       points: number,
+       size: number,
+     ) => {
+@@ -1192,6 +1206,8 @@ function SkyCollectibles({
+     placeInZone(8, spread * 0.7, spread, 250, 550, "common", 1, 6);
+     placeInZone(4, spread * 0.7, spread, 400, 700, "rare", 5, 9);
+     placeInZone(2, spread * 0.7, spread, 650, 850, "epic", 25, 14);
++    // Stratosphere: 3 legendary stars at the highest altitude
++    placeInZone(3, spread * 0.8, spread, 800, 950, "legendary", 50, 18);
+ 
+     return result;
+   }, [cityRadius]);
+@@ -1211,6 +1227,7 @@ function SkyCollectibles({
+       common: new THREE.Color(0, 2.5, 2.5), // bright cyan
+       rare: new THREE.Color(2.5, 0.5, 3), // vivid purple
+       epic: new THREE.Color(3, 2.2, 0), // bright gold
++      legendary: new THREE.Color(5, 5, 0), // intense yellow/white glow
+     }),
+     [],
+   );
+@@ -1227,13 +1244,13 @@ function SkyCollectibles({
+ 
+   const prevTime = useRef(0);
+ 
+-  useFrame((state) => {
++  useFrame((state, delta) => {
+     const mesh = meshRef.current;
+     if (!mesh) return;
+ 
+-    const t = state.clock.elapsedTime;
+-    const dt = prevTime.current > 0 ? Math.min(t - prevTime.current, 0.05) : 0.016;
+-    prevTime.current = t;
++    // _timer.update() is called in the main useFrame, so we just get the elapsed time here
++    const t = _timer.getElapsed();
++    const dt = Math.min(delta, 0.05);
+     const playerPos = playerPosRef.current;
+ 
+     for (let i = 0; i < items.length; i++) {
+@@ -2039,9 +2056,9 @@ function River({
+ }) {
+   const matRef = useRef<THREE.MeshBasicMaterial>(null);
+ 
+-  useFrame(({ clock }) => {
++  useFrame(() => {
+     if (matRef.current) {
+-      matRef.current.opacity = 0.82 + Math.sin(clock.elapsedTime * 0.5) * 0.05;
++      matRef.current.opacity = 0.82 + Math.sin(_timer.getElapsed() * 0.5) * 0.05;
+     }
+   });
+ 
+@@ -2507,6 +2524,7 @@ export default function CityCanvas({
+       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
+     >
+       {showPerf && <Stats />}
++      <TimerUpdater />
+       <CityExposure cityEnergy={cityEnergy ?? 1} />
+       <PerformanceMonitor
+         onIncline={() => {
+diff --git a/src/components/CityScene.tsx b/src/components/CityScene.tsx
+index 6c651aa..a45c98b 100644
+--- a/src/components/CityScene.tsx
++++ b/src/components/CityScene.tsx
+@@ -7,6 +7,7 @@ import { createWindowAtlas, FocusBeacon } from "./Building3D";
+ import InstancedBuildings from "./InstancedBuildings";
+ import InstancedLabels from "./InstancedLabels";
+ import EffectsLayer from "./EffectsLayer";
++import WeatherLayer from "./WeatherLayer";
+ import LiveDots from "./LiveDots";
+ import type { LiveSession } from "@/lib/useCodingPresence";
+ import type { CityBuilding } from "@/lib/github";
+@@ -199,6 +200,8 @@ export default function CityScene({
+         ghostPreviewLogin={ghostPreviewLogin}
+       />
+ 
++      <WeatherLayer active={true} />
++
+       {/* FocusBeacon: standalone, only when a building is focused */}
+       {!introMode && focusedBuildingData && (
+         <group position={[focusedBuildingData.position[0], 0, focusedBuildingData.position[2]]}>
+diff --git a/src/components/FlyLeaderboard.tsx b/src/components/FlyLeaderboard.tsx
+index dfe6c9b..7778ced 100644
+--- a/src/components/FlyLeaderboard.tsx
++++ b/src/components/FlyLeaderboard.tsx
+@@ -348,7 +348,7 @@ export default function FlyLeaderboard() {
+                 </span>
+ 
+                 <span className="hidden w-20 text-right text-xs text-muted sm:block">
+-                  {entry.collected}/40
++                  {entry.collected}/43
+                 </span>
+ 
+                 <span className="w-24 text-right text-sm" style={{ color: ACCENT }}>
+diff --git a/src/components/GlobalRadio.tsx b/src/components/GlobalRadio.tsx
+index f705c23..39b0992 100644
+--- a/src/components/GlobalRadio.tsx
++++ b/src/components/GlobalRadio.tsx
+@@ -22,7 +22,8 @@ export default function GlobalRadio() {
+ 
+   useEffect(() => {
+     if (!mounted) return;
+-    const findSlot = () => document.getElementById("gc-radio-slot");
++    const findSlot = () =>
++      document.getElementById("gc-radio-slot") || document.getElementById("gc-radio-slot-alt");
+     setSlot(findSlot());
+ 
+     const observer = new MutationObserver(() => setSlot(findSlot()));
+diff --git a/src/components/WeatherLayer.tsx b/src/components/WeatherLayer.tsx
+new file mode 100644
+index 0000000..b3994e7
+--- /dev/null
++++ b/src/components/WeatherLayer.tsx
+@@ -0,0 +1,95 @@
++"use client";
++
++import { useRef, useMemo } from "react";
++import { useFrame } from "@react-three/fiber";
++import * as THREE from "three";
++
++const RAIN_COUNT = 4000;
++const RAIN_WINDOW = 1200; // Rain box size around camera
++const RAIN_HEIGHT = 800; // Rain height range
++const FALL_SPEED = 300; // px per second
++const WIND_X = 20;
++
++const _matrix = new THREE.Matrix4();
++const _position = new THREE.Vector3();
++const _scale = new THREE.Vector3(0.15, 6.0, 0.15); // Long thin raindrops
++
++export default function WeatherLayer({ active = true }: { active?: boolean }) {
++  const meshRef = useRef<THREE.InstancedMesh>(null);
++
++  // Initial random positions
++  const { positions, speeds } = useMemo(() => {
++    const pos = new Float32Array(RAIN_COUNT * 3);
++    const spd = new Float32Array(RAIN_COUNT);
++    for (let i = 0; i < RAIN_COUNT; i++) {
++      pos[i * 3] = (Math.random() - 0.5) * RAIN_WINDOW;
++      pos[i * 3 + 1] = Math.random() * RAIN_HEIGHT;
++      pos[i * 3 + 2] = (Math.random() - 0.5) * RAIN_WINDOW;
++      spd[i] = FALL_SPEED * (0.8 + Math.random() * 0.4);
++    }
++    return { positions: pos, speeds: spd };
++  }, []);
++
++  useFrame(({ camera }, delta) => {
++    if (!meshRef.current || !active) return;
++
++    const dt = Math.min(delta, 0.1);
++    const mesh = meshRef.current;
++    const camX = camera.position.x;
++    const camZ = camera.position.z;
++
++    for (let i = 0; i < RAIN_COUNT; i++) {
++      // Update Y position (falling)
++      positions[i * 3 + 1] -= speeds[i] * dt;
++
++      // Horizontal drift
++      positions[i * 3] += WIND_X * dt;
++
++      // Wrap around camera window (Horizontal)
++      let worldX = positions[i * 3];
++      let worldZ = positions[i * 3 + 2];
++
++      // Ensure raindrop is relative to camera but wraps
++      const relX =
++        ((((worldX - camX + RAIN_WINDOW / 2) % RAIN_WINDOW) + RAIN_WINDOW) % RAIN_WINDOW) -
++        RAIN_WINDOW / 2;
++      const relZ =
++        ((((worldZ - camZ + RAIN_WINDOW / 2) % RAIN_WINDOW) + RAIN_WINDOW) % RAIN_WINDOW) -
++        RAIN_WINDOW / 2;
++
++      positions[i * 3] = camX + relX;
++      positions[i * 3 + 2] = camZ + relZ;
++
++      // Reset to top if it hits the ground or goes too low
++      if (positions[i * 3 + 1] < 0) {
++        positions[i * 3 + 1] = RAIN_HEIGHT;
++      }
++
++      _position.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
++      _matrix.setPosition(_position);
++      _matrix.scale(_scale);
++      mesh.setMatrixAt(i, _matrix);
++    }
++
++    mesh.instanceMatrix.needsUpdate = true;
++  });
++
++  if (!active) return null;
++
++  return (
++    <instancedMesh
++      ref={meshRef}
++      args={[null as any, null as any, RAIN_COUNT]}
++      frustumCulled={false}
++    >
++      <boxGeometry args={[1, 1, 1]} />
++      <meshBasicMaterial
++        color="#88ccff"
++        transparent
++        opacity={0.35}
++        blending={THREE.AdditiveBlending}
++        depthWrite={false}
++      />
++    </instancedMesh>
++  );
++}

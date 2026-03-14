@@ -1,0 +1,23 @@
+﻿ all_branches.txt                  |    6 -
+ file_diff.txt                     |   37 -
+ lint_output.txt                   |  Bin 0 -> 15880 bytes
+ lint_temp.txt                     |  Bin 0 -> 920 bytes
+ local_branches.txt                |    2 -
+ package-lock.json                 |   20 +-
+ page_diff.txt                     | 3146 -------------------------------------
+ pr_commit_1_stat.txt              |    9 -
+ pr_commit_2_stat.txt              |  189 ---
+ pr_commits.txt                    |   11 -
+ pr_diff_stat.txt                  |  185 ---
+ pr_diff_w_stat.txt                |  181 ---
+ remotes.txt                       |    4 -
+ src/app/api/city/route.ts         |   48 +-
+ src/app/api/presence/route.ts     |   33 +-
+ src/app/layout.tsx                |    2 +-
+ src/app/page.tsx                  |   29 +-
+ src/components/CityCanvas.tsx     |   40 +-
+ src/components/CityScene.tsx      |    3 +
+ src/components/FlyLeaderboard.tsx |    2 +-
+ src/components/GlobalRadio.tsx    |    3 +-
+ src/components/WeatherLayer.tsx   |   95 ++
+ 22 files changed, 239 insertions(+), 3806 deletions(-)
